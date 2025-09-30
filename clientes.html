@@ -69,11 +69,12 @@
             </div>
             <div class="input">
               <label for="cpf">CPF</label>
-              <input id="cpf" placeholder="000.000.000-00" />
+              <input id="cpf" placeholder="000.000.000-00" maxlength="14" inputmode="numeric" pattern="\d{3}\.\d{3}\.\d{3}-\d{2}" />
+              <span class="hint">Digite 11 dígitos. A pontuação é aplicada automaticamente.</span>
             </div>
             <div class="input">
               <label for="telefone">Telefone</label>
-              <input id="telefone" placeholder="(00) 90000-0000" />
+              <input id="telefone" placeholder="(00) 90000-0000" maxlength="16" inputmode="tel" />
             </div>
             <div class="input">
               <label for="email">Email</label>
@@ -137,6 +138,10 @@
 
   function load(){ render(StorageAPI.listClientes()); }
 
+  // máscaras em tempo real
+  form.cpf.addEventListener('input', ()=>{ form.cpf.value = Utils.maskCPF(form.cpf.value); form.cpf.setCustomValidity(''); });
+  form.telefone.addEventListener('input', ()=>{ form.telefone.value = Utils.maskPhone(form.telefone.value); form.telefone.setCustomValidity(''); });
+
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     const data = {
@@ -149,9 +154,19 @@
     };
 
     if(!data.nome){ alert('Nome é obrigatório'); return; }
-    if(data.cpf && !Utils.validateCPF(data.cpf)){ alert('CPF inválido'); return; }
+    if(data.cpf && !Utils.validateCPF(data.cpf)){
+      form.cpf.setCustomValidity('CPF inválido');
+      form.cpf.reportValidity();
+      form.cpf.focus();
+      return;
+    }
     if(data.email && !Utils.validateEmail(data.email)){ alert('Email inválido'); return; }
-    if(data.telefone && !Utils.validatePhone(data.telefone)){ alert('Telefone inválido'); return; }
+    if(data.telefone && !Utils.validatePhone(data.telefone)){
+      form.telefone.setCustomValidity('Telefone inválido');
+      form.telefone.reportValidity();
+      form.telefone.focus();
+      return;
+    }
 
     const file = document.getElementById('foto').files?.[0];
     if(file){ data.foto_cliente = await Utils.toBase64(file); }

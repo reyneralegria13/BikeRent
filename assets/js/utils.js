@@ -24,6 +24,33 @@ const Utils = (() => {
     return d.length>=10 && d.length<=11;
   }
 
+  function maskCPF(value){
+    const d = onlyDigits(value).slice(0,11);
+    let out = '';
+    if(d.length>0) out = d.substring(0,3);
+    if(d.length>3) out += '.' + d.substring(3,6);
+    if(d.length>6) out += '.' + d.substring(6,9);
+    if(d.length>9) out += '-' + d.substring(9,11);
+    return out;
+  }
+
+  function maskPhone(value){
+    const d = onlyDigits(value).slice(0,11);
+    if(d.length <= 10){
+      // (DD) XXXX-XXXX
+      const p1 = d.substring(0,2);
+      const p2 = d.substring(2,6);
+      const p3 = d.substring(6,10);
+      return (p1?`(${p1}`:'') + (p1?') ':'') + p2 + (p3?`-${p3}`:'');
+    } else {
+      // (DD) XXXXX-XXXX
+      const p1 = d.substring(0,2);
+      const p2 = d.substring(2,7);
+      const p3 = d.substring(7,11);
+      return (p1?`(${p1}`:'') + (p1?') ':'') + p2 + (p3?`-${p3}`:'');
+    }
+  }
+
   function toBase64(file){
     return new Promise((resolve,reject)=>{
       const r = new FileReader();
@@ -63,5 +90,5 @@ const Utils = (() => {
     return 'ativo';
   }
 
-  return { onlyDigits, validateCPF, validateEmail, validatePhone, toBase64, parseISO, overlaps, nowISO, getRentalStatus, formatDate };
+  return { onlyDigits, validateCPF, validateEmail, validatePhone, toBase64, parseISO, overlaps, nowISO, getRentalStatus, formatDate, maskCPF, maskPhone };
 })();
