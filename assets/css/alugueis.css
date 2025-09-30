@@ -1,0 +1,12 @@
+/* Estilos específicos de Aluguéis */
+.table td:nth-child(2){font-weight:600}
+.table td:nth-child(6){font-weight:600}
+
+/* Impressão */
+@media print{
+	.app-header,.app-footer,.toolbar,.nav,.nav-toggle,.no-print{display:none !important}
+	body{background:#fff}
+	.card{box-shadow:none;border:1px solid #e5e7eb;background:#fff}
+	.print-header{display:block !important; margin-bottom:10px}
+	.badge{border:1px solid #94a3b8}
+}

@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BikeRent - Clientes</title>
+  <link rel="stylesheet" href="assets/css/base.css" />
+  <link rel="stylesheet" href="assets/css/clientes.css" />
+</head>
+<body>
+<header class="app-header">
+  <div class="container">
+    <h1 class="brand">BikeRent</h1>
+    <nav class="nav">
+      <a href="index.html">Início</a>
+      <a class="active" href="clientes.html">Clientes</a>
+      <a href="bicicletas.html">Bicicletas</a>
+      <a href="alugueis.html">Aluguéis</a>
+    </nav>
+    <button class="nav-toggle" aria-label="Abrir menu">☰</button>
+  </div>
+</header>
+<main class="container">
+  <div class="page-header">
+    <h2>Clientes</h2>
+    <div class="actions">
+      <button id="btnNovoCliente" class="btn primary">Novo cliente</button>
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <div class="input" style="flex:1">
+      <input id="buscaCliente" placeholder="Buscar por nome, CPF, email" />
+    </div>
+  </div>
+
+  <section class="card">
+    <table class="table" id="tableClientes">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Nome</th>
+          <th>CPF</th>
+          <th>Telefone</th>
+          <th>Email</th>
+          <th>Foto</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <div class="empty" id="emptyClientes" style="display:none">Nenhum cliente cadastrado ainda.</div>
+  </section>
+
+  <!-- Modal de Cliente -->
+  <div class="modal" id="modalCliente" aria-hidden="true">
+    <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="tituloCliente">
+      <div class="modal-header">
+        <h3 id="tituloCliente">Novo cliente</h3>
+        <button class="modal-close" id="fecharModal">✕</button>
+      </div>
+      <form id="formCliente" autocomplete="off">
+        <div class="modal-body">
+          <input type="hidden" id="clienteId" />
+          <div class="form">
+            <div class="input">
+              <label for="nome">Nome</label>
+              <input id="nome" required />
+            </div>
+            <div class="input">
+              <label for="cpf">CPF</label>
+              <input id="cpf" placeholder="000.000.000-00" />
+            </div>
+            <div class="input">
+              <label for="telefone">Telefone</label>
+              <input id="telefone" placeholder="(00) 90000-0000" />
+            </div>
+            <div class="input">
+              <label for="email">Email</label>
+              <input id="email" type="email" placeholder="nome@email.com" />
+            </div>
+            <div class="input">
+              <label for="foto">Foto do cliente</label>
+              <input id="foto" type="file" accept="image/*" />
+              <span class="hint">Opcional. Imagem será salva localmente (base64)</span>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn" id="btnCancelarCliente">Cancelar</button>
+          <button type="submit" class="btn primary">Salvar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</main>
+<footer class="app-footer">
+  <div class="container">
+    <small>© <span id="year"></span> BikeRent</small>
+  </div>
+</footer>
+<script src="assets/js/storage.js"></script>
+<script src="assets/js/utils.js"></script>
+<script>
+  const form = document.getElementById('formCliente');
+  const table = document.getElementById('tableClientes').querySelector('tbody');
+  const empty = document.getElementById('emptyClientes');
+  const busca = document.getElementById('buscaCliente');
+  const modal = document.getElementById('modalCliente');
+  const tituloModal = document.getElementById('tituloCliente');
+
+  function render(list){
+    const q = (busca.value||'').toLowerCase();
+    const filtered = list.filter(c =>
+      `${c.nome||''}`.toLowerCase().includes(q) ||
+      `${c.cpf||''}`.toLowerCase().includes(q) ||
+      `${c.email||''}`.toLowerCase().includes(q)
+    );
+    table.innerHTML = '';
+    filtered.forEach(c => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td data-label="ID">${c.id}</td>
+        <td data-label="Nome">${c.nome||'-'}</td>
+        <td data-label="CPF">${c.cpf||'-'}</td>
+        <td data-label="Telefone">${c.telefone||'-'}</td>
+        <td data-label="Email">${c.email||'-'}</td>
+  <td data-label="Foto">${c.foto_cliente ? '<img class="avatar" src="${c.foto_cliente}" alt="foto" />' : '<span class="badge muted">Não</span>'}</td>
+        <td data-label="Ações">
+          <button class="btn small" data-edit="${c.id}">Editar</button>
+          <button class="btn small danger" data-del="${c.id}">Excluir</button>
+        </td>`;
+      table.appendChild(tr);
+    });
+    empty.style.display = filtered.length ? 'none' : 'block';
+  }
+
+  function load(){ render(StorageAPI.listClientes()); }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const data = {
+      id: form.clienteId.value ? Number(form.clienteId.value) : undefined,
+      nome: form.nome.value.trim(),
+      cpf: form.cpf.value.trim(),
+      telefone: form.telefone.value.trim(),
+      email: form.email.value.trim(),
+      foto_cliente: undefined
+    };
+
+    if(!data.nome){ alert('Nome é obrigatório'); return; }
+    if(data.cpf && !Utils.validateCPF(data.cpf)){ alert('CPF inválido'); return; }
+    if(data.email && !Utils.validateEmail(data.email)){ alert('Email inválido'); return; }
+    if(data.telefone && !Utils.validatePhone(data.telefone)){ alert('Telefone inválido'); return; }
+
+    const file = document.getElementById('foto').files?.[0];
+    if(file){ data.foto_cliente = await Utils.toBase64(file); }
+
+    // Salva/atualiza cliente
+    const cliente = StorageAPI.upsertCliente(data);
+    form.reset(); form.clienteId.value='';
+    modal.classList.remove('open');
+    document.body.style.overflow = '';
+    load();
+  });
+
+  function openModal(editData){
+    tituloModal.textContent = editData ? 'Editar cliente' : 'Novo cliente';
+    if(editData){
+      form.clienteId.value = editData.id;
+      form.nome.value = editData.nome||'';
+      form.cpf.value = editData.cpf||'';
+      form.telefone.value = editData.telefone||'';
+      form.email.value = editData.email||'';
+    } else {
+      form.reset(); form.clienteId.value='';
+    }
+    modal.classList.add('open');
+    document.body.style.overflow = 'hidden';
+    setTimeout(()=>form.nome.focus(), 50);
+  }
+
+  document.getElementById('btnCancelarCliente').addEventListener('click', () => { modal.classList.remove('open'); document.body.style.overflow=''; });
+  document.getElementById('fecharModal').addEventListener('click', () => { modal.classList.remove('open'); document.body.style.overflow=''; });
+  document.getElementById('btnNovoCliente').addEventListener('click', () => openModal(null));
+  document.querySelector('.nav-toggle').addEventListener('click', () => document.body.classList.toggle('nav-open'));
+
+  document.getElementById('tableClientes').addEventListener('click', (e) => {
+    const editId = e.target.getAttribute('data-edit');
+    const delId = e.target.getAttribute('data-del');
+    if(editId){
+      const c = StorageAPI.getCliente(Number(editId));
+      if(c){ openModal(c); }
+    }
+    if(delId){
+      const hasActive = StorageAPI.listAlugueis().some(a => a.cliente_id === Number(delId) && Utils.getRentalStatus(a) === 'ativo');
+      if(hasActive){ alert('Não é possível excluir: cliente com aluguel ativo.'); return; }
+      if(confirm('Excluir este cliente?')){
+        // remove alugueis vinculados (não ativos)
+        const alugueis = StorageAPI.listAlugueis().filter(a=>a.cliente_id !== Number(delId));
+        localStorage.setItem(StorageAPI.KEYS.alugueis, JSON.stringify(alugueis));
+        StorageAPI.removeCliente(Number(delId));
+        load();
+      }
+    }
+  });
+
+  busca.addEventListener('input', load);
+  document.getElementById('year').textContent = new Date().getFullYear();
+
+  function init(){
+    load();
+  }
+  init();
+</script>
+</body>
+</html>

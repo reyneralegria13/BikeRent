@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BikeRent - Aluguéis</title>
+  <link rel="stylesheet" href="assets/css/base.css" />
+  <link rel="stylesheet" href="assets/css/alugueis.css" />
+</head>
+<body>
+<header class="app-header">
+  <div class="container">
+    <h1 class="brand">BikeRent</h1>
+    <nav class="nav">
+      <a href="index.html">Início</a>
+      <a href="clientes.html">Clientes</a>
+      <a href="bicicletas.html">Bicicletas</a>
+      <a class="active" href="alugueis.html">Aluguéis</a>
+    </nav>
+    <button class="nav-toggle" aria-label="Abrir menu">☰</button>
+  </div>
+</header>
+<main class="container">
+  <div class="page-header">
+    <h2>Aluguéis</h2>
+    <div class="actions">
+      <span class="badge muted">Somente listagem</span>
+    </div>
+  </div>
+
+  <section class="card">
+    <div class="toolbar">
+      <div class="actions" style="gap:8px;flex-wrap:wrap">
+        <button class="btn small" data-filter="todos">Todos</button>
+        <button class="btn small" data-filter="futuro">Futuros</button>
+        <button class="btn small" data-filter="ativo">Ativos</button>
+        <button class="btn small" data-filter="finalizado">Finalizados</button>
+        <button class="btn small" id="btnPrint">Exportar PDF</button>
+      </div>
+      <div class="input" style="flex:1">
+        <input id="busca" placeholder="Buscar por cliente ou código da bicicleta" />
+      </div>
+    </div>
+
+    <div class="print-header" style="display:none">
+      <h3 style="margin-bottom:6px">Relatório de Aluguéis</h3>
+      <div style="display:flex;gap:12px;font-size:14px;color:#334155">
+        <div>Gerado em: <strong id="printDate"></strong></div>
+        <div>Filtro: <strong id="printFilter">—</strong></div>
+        <div>Busca: <strong id="printSearch">—</strong></div>
+      </div>
+    </div>
+
+    <table class="table" id="tableAlugueis">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Cliente</th>
+          <th>Bicicleta</th>
+          <th>Saída</th>
+          <th>Retorno</th>
+          <th>Status</th>
+          <th class="no-print">Ações</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <div class="empty" id="emptyAlugueis" style="display:none">Nenhum aluguel encontrado.</div>
+  </section>
+</main>
+<footer class="app-footer">
+  <div class="container">
+    <small>© <span id="year"></span> BikeRent</small>
+  </div>
+</footer>
+<script src="assets/js/storage.js"></script>
+<script src="assets/js/utils.js"></script>
+<script>
+  const table = document.getElementById('tableAlugueis').querySelector('tbody');
+  const empty = document.getElementById('emptyAlugueis');
+  const busca = document.getElementById('busca');
+  let filter = 'todos';
+
+  function joinData(){
+    const clientes = StorageAPI.listClientes();
+    const mapClientes = Object.fromEntries(clientes.map(c=>[c.id, c]));
+    const alugueis = StorageAPI.listAlugueis();
+    return alugueis.map(a => ({
+      ...a,
+      cliente: mapClientes[a.cliente_id] || {nome: '— removido —'}
+    }));
+  }
+
+  function render(){
+    const list = joinData();
+    const q = (busca.value||'').toLowerCase();
+    const filtered = list.filter(x =>
+      (x.cliente?.nome||'').toLowerCase().includes(q) ||
+      (x.codigo_bicicleta||'').toLowerCase().includes(q)
+    ).filter(x => filter==='todos' ? true : Utils.getRentalStatus(x)===filter);
+
+    table.innerHTML = '';
+    filtered.forEach(a => {
+      const status = Utils.getRentalStatus(a);
+      const badge = status==='ativo' ? 'success' : (status==='futuro' ? 'warn' : 'muted');
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td data-label="ID">${a.id}</td>
+        <td data-label="Cliente">${a.cliente?.nome||'-'}</td>
+        <td data-label="Bicicleta">${a.codigo_bicicleta}</td>
+        <td data-label="Saída">${Utils.formatDate(a.data_saida)}</td>
+        <td data-label="Retorno">${Utils.formatDate(a.data_retorno)}</td>
+        <td data-label="Status"><span class="badge ${badge}">${status}</span></td>
+        <td data-label="Ações" class="no-print">
+          <button class="btn small danger" data-del="${a.id}">Cancelar</button>
+        </td>`;
+      table.appendChild(tr);
+    });
+    empty.style.display = filtered.length ? 'none' : 'block';
+  }
+
+  document.querySelector('.nav-toggle').addEventListener('click', () => document.body.classList.toggle('nav-open'));
+  document.getElementById('year').textContent = new Date().getFullYear();
+  document.querySelectorAll('[data-filter]').forEach(btn=>btn.addEventListener('click',()=>{ filter = btn.getAttribute('data-filter'); render(); }));
+  busca.addEventListener('input', render);
+  document.getElementById('btnPrint').addEventListener('click', ()=>{
+    // Preenche cabeçalho de impressão
+    const map = {todos:'Todos', futuro:'Futuros', ativo:'Ativos', finalizado:'Finalizados'};
+    document.getElementById('printFilter').textContent = map[filter] || '—';
+    const term = (busca.value||'').trim();
+    document.getElementById('printSearch').textContent = term ? term : '—';
+    const d = new Date();
+    const pad = n => String(n).padStart(2,'0');
+    document.getElementById('printDate').textContent = `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    window.print();
+  });
+
+  document.getElementById('tableAlugueis').addEventListener('click', (e)=>{
+    const delId = e.target.getAttribute('data-del');
+    if(delId){
+      if(confirm('Cancelar este aluguel?')){
+        StorageAPI.removeAluguel(Number(delId));
+        render();
+      }
+    }
+  });
+
+  render();
+</script>
+</body>
+</html>

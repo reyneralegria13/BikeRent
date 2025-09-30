@@ -1,0 +1,12 @@
+/* Estilos específicos de Bicicletas */
+.table td:nth-child(2), .table th:nth-child(2){min-width:120px}
+.table td:nth-child(3), .table th:nth-child(3){min-width:80px}
+.table td:nth-child(6){color:#cbd5e1}
+.status-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
+.status-free{background:#22c55e}
+.status-busy{background:#f59e0b}
+
+#formBike{margin-bottom:18px}
+
+/* Pequeno realce no formulário quando em modo edição */
+#bikeId[value]:not([value=""]) ~ .actions .primary{box-shadow:0 0 0 3px rgba(34,211,238,.2)}

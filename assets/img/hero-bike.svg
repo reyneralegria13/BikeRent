@@ -1,0 +1,11 @@
+<svg width="512" height="256" viewBox="0 0 512 256" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="512" height="256" rx="24" fill="#0b1220"/>
+<circle cx="152" cy="168" r="48" stroke="#22d3ee" stroke-width="6" fill="rgba(34,211,238,.08)"/>
+<circle cx="352" cy="168" r="48" stroke="#34d399" stroke-width="6" fill="rgba(34,197,94,.08)"/>
+<path d="M152 168 L210 120 L250 168 L352 168" stroke="#94a3b8" stroke-width="6" stroke-linecap="round"/>
+<path d="M210 120 L240 88 L286 88" stroke="#22d3ee" stroke-width="6" stroke-linecap="round"/>
+<path d="M286 88 L308 120" stroke="#34d399" stroke-width="6" stroke-linecap="round"/>
+<circle cx="240" cy="88" r="6" fill="#22d3ee"/>
+<circle cx="286" cy="88" r="6" fill="#34d399"/>
+<text x="24" y="44" fill="#e5e7eb" font-family="Segoe UI, Arial" font-size="20">Gerencie seus aluguéis de bike</text>
+</svg>

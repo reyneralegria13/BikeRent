@@ -1,0 +1,8 @@
+/* Estilos específicos da Home (Aluguel Rápido) */
+.quick-rent{margin:10px 0 30px}
+.qr-header{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.qr-lists{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+.qr-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.qr-ul{list-style:none;display:grid;gap:8px}
+.qr-ul li{padding:8px 10px;border:1px solid var(--border);border-radius:10px;background:rgba(255,255,255,.02)}
+@media (max-width: 720px){.qr-lists{grid-template-columns:1fr}}

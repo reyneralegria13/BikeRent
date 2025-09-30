@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BikeRent - Início</title>
+  <link rel="stylesheet" href="assets/css/base.css" />
+  <link rel="stylesheet" href="assets/css/index.css" />
+</head>
+<body>
+  <header class="app-header">
+    <div class="container">
+      <h1 class="brand">BikeRent</h1>
+      <nav class="nav">
+        <a href="index.html" class="active">Início</a>
+        <a href="clientes.html">Clientes</a>
+        <a href="bicicletas.html">Bicicletas</a>
+        <a href="alugueis.html">Aluguéis</a>
+      </nav>
+      <button class="nav-toggle" aria-label="Abrir menu">☰</button>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="hero">
+      <div class="hero-text">
+        <h2>Gerencie seu aluguel de bicicletas com facilidade</h2>
+        <p>Cadastre clientes, bicicletas e acompanhe aluguéis — tudo no seu navegador, sem banco de dados.</p>
+        <div class="hero-actions">
+          <a class="btn primary" href="clientes.html">Começar pelos clientes</a>
+          <a class="btn" href="bicicletas.html">Cadastrar bicicletas</a>
+        </div>
+      </div>
+      <img class="hero-img" src="assets/img/hero-bike.svg" alt="Bicicleta" />
+    </section>
+
+    <section class="card quick-rent">
+      <div class="qr-header">
+        <h3>Aluguel rápido</h3>
+        <span class="hint">Escolha período, cliente e uma bicicleta disponível</span>
+      </div>
+      <form id="formQuick" class="form" autocomplete="off">
+        <div class="input">
+          <label for="qr_saida">Data de saída</label>
+          <input id="qr_saida" type="date" required />
+        </div>
+        <div class="input">
+          <label for="qr_retorno">Data de retorno</label>
+          <input id="qr_retorno" type="date" required />
+        </div>
+        <div class="input">
+          <label for="qr_cliente">Cliente</label>
+          <select id="qr_cliente" required>
+            <option value="">— Selecione —</option>
+          </select>
+        </div>
+        <div class="input">
+          <label for="qr_bike">Bicicleta disponível</label>
+          <select id="qr_bike" required>
+            <option value="">— Selecione —</option>
+          </select>
+        </div>
+        <div class="actions full">
+          <button class="btn primary" type="submit">Criar aluguel</button>
+          <a class="btn" href="alugueis.html">Ver aluguéis</a>
+        </div>
+      </form>
+
+      <div class="qr-lists">
+        <div class="qr-list card">
+          <div class="qr-title">
+            <strong>Clientes</strong>
+            <span class="badge" id="qr_count_clientes">0</span>
+          </div>
+          <ul id="qr_lista_clientes" class="qr-ul"></ul>
+          <div class="empty" id="qr_empty_clientes" style="display:none">Nenhum cliente cadastrado. Cadastre em <a href="clientes.html">Clientes</a>.</div>
+        </div>
+        <div class="qr-list card">
+          <div class="qr-title">
+            <strong>Bicicletas disponíveis</strong>
+            <span class="badge success" id="qr_count_bikes">0</span>
+          </div>
+          <ul id="qr_lista_bikes" class="qr-ul"></ul>
+          <div class="empty" id="qr_empty_bikes" style="display:none">Nenhuma bicicleta disponível para o período selecionado.</div>
+        </div>
+      </div>
+    
+  </main>
+
+  <footer class="app-footer">
+    <div class="container">
+      <small>© <span id="year"></span> BikeRent. Todos os direitos reservados.</small>
+      <button id="resetData" class="btn danger outline">Limpar dados (dev)</button>
+    </div>
+  </footer>
+
+  <script src="assets/js/storage.js"></script>
+  <script src="assets/js/utils.js"></script>
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+    document.querySelector('.nav-toggle').addEventListener('click', () => document.body.classList.toggle('nav-open'));
+    document.getElementById('resetData').addEventListener('click', () => {
+      if (confirm('Tem certeza que deseja limpar todos os dados locais? Isso não pode ser desfeito.')) {
+        StorageAPI.resetAll();
+        alert('Dados limpos.');
+      }
+    });
+
+    // Quick Rent logic
+    const qr_saida = document.getElementById('qr_saida');
+    const qr_retorno = document.getElementById('qr_retorno');
+    const qr_cliente = document.getElementById('qr_cliente');
+    const qr_bike = document.getElementById('qr_bike');
+    const qr_count_clientes = document.getElementById('qr_count_clientes');
+    const qr_count_bikes = document.getElementById('qr_count_bikes');
+    const ulClientes = document.getElementById('qr_lista_clientes');
+    const ulBikes = document.getElementById('qr_lista_bikes');
+    const emptyClientes = document.getElementById('qr_empty_clientes');
+    const emptyBikes = document.getElementById('qr_empty_bikes');
+
+    function overlaps(aStart, aEnd, bStart, bEnd){
+      return Utils.overlaps(aStart, aEnd, bStart, bEnd);
+    }
+    function bikesDisponiveis(inicio, fim){
+      const bikes = StorageAPI.listBicicletas();
+      const alugueis = StorageAPI.listAlugueis();
+      return bikes.filter(b => {
+        const conflita = alugueis.some(a => a.codigo_bicicleta === b.codigo && overlaps(a.data_saida, a.data_retorno, inicio, fim));
+        return !conflita;
+      });
+    }
+    function carregarClientes(){
+      const clientes = StorageAPI.listClientes();
+      qr_cliente.innerHTML = '<option value="">— Selecione —</option>' + clientes.map(c=>`<option value="${c.id}">${c.nome} ${c.cpf? '— '+c.cpf: ''}</option>`).join('');
+      qr_count_clientes.textContent = clientes.length;
+      ulClientes.innerHTML = clientes.slice(0, 8).map(c=>`<li>${c.nome}${c.cpf? ' — '+c.cpf: ''}</li>`).join('');
+      emptyClientes.style.display = clientes.length ? 'none' : 'block';
+    }
+    function carregarBikes(){
+      const ini = qr_saida.value;
+      const fim = qr_retorno.value || ini;
+      const disp = ini ? bikesDisponiveis(ini, fim) : StorageAPI.listBicicletas();
+      qr_bike.innerHTML = '<option value="">— Selecione —</option>' + disp.map(b=>`<option value="${b.codigo}">${b.codigo} — ${b.marca||''} ${b.modelo||''}</option>`).join('');
+      qr_count_bikes.textContent = disp.length;
+      ulBikes.innerHTML = disp.slice(0, 8).map(b=>`<li>${b.codigo} — ${b.marca||''} ${b.modelo||''}</li>`).join('');
+      emptyBikes.style.display = disp.length ? 'none' : 'block';
+    }
+
+    function initQR(){
+      const today = Utils.nowISO();
+      qr_saida.value = today;
+      qr_retorno.value = today;
+      carregarClientes();
+      carregarBikes();
+    }
+
+    document.getElementById('formQuick').addEventListener('submit', (e)=>{
+      e.preventDefault();
+      const cliente_id = Number(qr_cliente.value);
+      const codigo_bicicleta = qr_bike.value;
+      const data_saida = qr_saida.value;
+      const data_retorno = qr_retorno.value || data_saida;
+      if(!cliente_id){ alert('Selecione um cliente.'); return; }
+      if(!codigo_bicicleta){ alert('Selecione uma bicicleta.'); return; }
+      if(Utils.parseISO(data_saida) > Utils.parseISO(data_retorno)){ alert('Data de saída deve ser anterior ou igual à data de retorno.'); return; }
+      // Checa conflito (defensivo)
+      const conflitos = StorageAPI.listAlugueis().filter(a => a.codigo_bicicleta === codigo_bicicleta && overlaps(a.data_saida, a.data_retorno, data_saida, data_retorno));
+      if(conflitos.length){ alert('Já existe um aluguel para esta bicicleta no período.'); carregarBikes(); return; }
+      StorageAPI.upsertAluguel({ cliente_id, codigo_bicicleta, data_saida, data_retorno });
+      alert('Aluguel criado com sucesso!');
+      carregarBikes();
+    });
+
+    qr_saida.addEventListener('change', ()=>{ if(qr_retorno.value && qr_retorno.value < qr_saida.value){ qr_retorno.value = qr_saida.value; } carregarBikes(); });
+    qr_retorno.addEventListener('change', ()=>{ if(qr_retorno.value < qr_saida.value){ qr_retorno.value = qr_saida.value; } carregarBikes(); });
+
+    initQR();
+  </script>
+</body>
+</html>

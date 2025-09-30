@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BikeRent - Bicicletas</title>
+  <link rel="stylesheet" href="assets/css/base.css" />
+  <link rel="stylesheet" href="assets/css/bicicletas.css" />
+</head>
+<body>
+<header class="app-header">
+  <div class="container">
+    <h1 class="brand">BikeRent</h1>
+    <nav class="nav">
+      <a href="index.html">Início</a>
+      <a href="clientes.html">Clientes</a>
+      <a class="active" href="bicicletas.html">Bicicletas</a>
+      <a href="alugueis.html">Aluguéis</a>
+    </nav>
+    <button class="nav-toggle" aria-label="Abrir menu">☰</button>
+  </div>
+</header>
+<main class="container">
+  <div class="page-header">
+    <h2>Bicicletas</h2>
+    <div class="actions">
+      <button id="btnNova" class="btn primary">Nova bicicleta</button>
+    </div>
+  </div>
+
+  <section class="card">
+    <form id="formBike" class="form" autocomplete="off">
+      <input type="hidden" id="bikeId" />
+      <div class="input">
+        <label for="codigo">Código</label>
+        <input id="codigo" required />
+      </div>
+      <div class="input">
+        <label for="cor">Cor</label>
+        <input id="cor" />
+      </div>
+      <div class="input">
+        <label for="marca">Marca</label>
+        <input id="marca" />
+      </div>
+      <div class="input">
+        <label for="modelo">Modelo</label>
+        <input id="modelo" />
+      </div>
+      <div class="input full">
+        <label for="observacao">Observação</label>
+        <textarea id="observacao" rows="2"></textarea>
+      </div>
+      <div class="actions full">
+        <button class="btn primary" type="submit">Salvar</button>
+        <button class="btn" type="button" id="btnCancelar">Cancelar</button>
+      </div>
+    </form>
+  </section>
+
+  <div class="toolbar">
+    <div class="input" style="flex:1">
+      <input id="search" placeholder="Buscar por código, marca ou modelo" />
+      <span class="hint">Dica: pressione <span class="kbd">/</span> para focar a busca</span>
+    </div>
+  </div>
+
+  <section class="card">
+    <table class="table" id="tableBikes">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Código</th>
+          <th>Cor</th>
+          <th>Marca</th>
+          <th>Modelo</th>
+          <th>Status</th>
+          <th>Observação</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <div class="empty" id="emptyBikes" style="display:none">Nenhuma bicicleta cadastrada ainda.</div>
+  </section>
+</main>
+<footer class="app-footer">
+  <div class="container">
+    <small>© <span id="year"></span> BikeRent</small>
+  </div>
+</footer>
+<script src="assets/js/storage.js"></script>
+<script src="assets/js/utils.js"></script>
+<script>
+  const form = document.getElementById('formBike');
+  const table = document.getElementById('tableBikes').querySelector('tbody');
+  const empty = document.getElementById('emptyBikes');
+  const search = document.getElementById('search');
+
+  function bikeStatus(bike){
+    // status considerando aluguéis ativos
+    const now = new Date();
+    const alugueis = StorageAPI.listAlugueis().filter(a => a.codigo_bicicleta === bike.codigo);
+    const ativo = alugueis.some(a => {
+      const s = Utils.parseISO(a.data_saida); const r = Utils.parseISO(a.data_retorno);
+      return s && r && s <= now && now <= r;
+    });
+    return ativo ? 'ocupada' : 'disponível';
+  }
+
+  function render(list){
+    const q = search.value.toLowerCase();
+    const filtered = list.filter(b =>
+      `${b.codigo}`.toLowerCase().includes(q) ||
+      `${b.marca||''}`.toLowerCase().includes(q) ||
+      `${b.modelo||''}`.toLowerCase().includes(q)
+    );
+    table.innerHTML = '';
+    filtered.forEach(b => {
+      const status = bikeStatus(b);
+      const dot = status==='disponível' ? 'status-free' : 'status-busy';
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td data-label="ID">${b.id}</td>
+        <td data-label="Código">${b.codigo}</td>
+        <td data-label="Cor">${b.cor||'-'}</td>
+        <td data-label="Marca">${b.marca||'-'}</td>
+        <td data-label="Modelo">${b.modelo||'-'}</td>
+        <td data-label="Status"><span class="status-dot ${dot}"></span>${status}</td>
+        <td data-label="Obs">${b.observacao||'-'}</td>
+        <td data-label="Ações">
+          <button class="btn small" data-edit="${b.id}">Editar</button>
+          <button class="btn small danger" data-del="${b.id}">Excluir</button>
+        </td>`;
+      table.appendChild(tr);
+    });
+    empty.style.display = filtered.length ? 'none' : 'block';
+  }
+
+  function load(){ render(StorageAPI.listBicicletas()); }
+
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const data = {
+      id: form.bikeId.value ? Number(form.bikeId.value) : undefined,
+      codigo: form.codigo.value.trim(),
+      cor: form.cor.value.trim(),
+      marca: form.marca.value.trim(),
+      modelo: form.modelo.value.trim(),
+      observacao: form.observacao.value.trim()
+    };
+    if(!data.codigo){ alert('Código é obrigatório'); return; }
+    const bikes = StorageAPI.listBicicletas();
+    const dup = bikes.find(b => b.codigo.toLowerCase() === data.codigo.toLowerCase() && b.id !== data.id);
+    if(dup){ alert('Já existe uma bicicleta com este código.'); return; }
+    StorageAPI.upsertBicicleta(data);
+    form.reset(); form.bikeId.value='';
+    load();
+  });
+
+  document.getElementById('btnCancelar').addEventListener('click', () => { form.reset(); form.bikeId.value=''; });
+  document.getElementById('btnNova').addEventListener('click', () => { form.reset(); form.bikeId.value=''; form.codigo.focus(); });
+  document.querySelector('.nav-toggle').addEventListener('click', () => document.body.classList.toggle('nav-open'));
+
+  document.getElementById('tableBikes').addEventListener('click', (e) => {
+    const editId = e.target.getAttribute('data-edit');
+    const delId = e.target.getAttribute('data-del');
+    if(editId){
+      const b = StorageAPI.getBicicleta(Number(editId));
+      if(b){
+        form.bikeId.value = b.id;
+        form.codigo.value = b.codigo||'';
+        form.cor.value = b.cor||'';
+        form.marca.value = b.marca||'';
+        form.modelo.value = b.modelo||'';
+        form.observacao.value = b.observacao||'';
+        window.scrollTo({top:0, behavior:'smooth'});
+      }
+    }
+    if(delId){
+      const b = StorageAPI.getBicicleta(Number(delId));
+      const hasActive = StorageAPI.listAlugueis().some(a => a.codigo_bicicleta === b.codigo && Utils.getRentalStatus(a) === 'ativo');
+      if(hasActive){ alert('Não é possível excluir: bicicleta com aluguel ativo.'); return; }
+      if(confirm('Excluir esta bicicleta?')){
+        StorageAPI.removeBicicleta(Number(delId));
+        load();
+      }
+    }
+  });
+
+  search.addEventListener('input', load);
+  window.addEventListener('keydown', (e) => { if(e.key === '/') { e.preventDefault(); search.focus(); }});
+  document.getElementById('year').textContent = new Date().getFullYear();
+
+  load();
+</script>
+</body>
+</html>
