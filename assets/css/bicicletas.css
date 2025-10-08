@@ -5,6 +5,7 @@
 .status-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
 .status-free{background:#22c55e}
 .status-busy{background:#f59e0b}
+.status-reserved{background:#eab308}
 
 #formBike{margin-bottom:18px}
 

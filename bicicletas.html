@@ -98,14 +98,19 @@
   const search = document.getElementById('search');
 
   function bikeStatus(bike){
-    // status considerando aluguéis ativos
+    // status considerando aluguéis ativos e futuros
     const now = new Date();
     const alugueis = StorageAPI.listAlugueis().filter(a => a.codigo_bicicleta === bike.codigo);
+    let temFuturo = false;
     const ativo = alugueis.some(a => {
       const s = Utils.parseISO(a.data_saida); const r = Utils.parseISO(a.data_retorno);
-      return s && r && s <= now && now <= r;
+      if(!s || !r) return false;
+      if(s > now){ temFuturo = true; }
+      return s <= now && now <= r; // ativo
     });
-    return ativo ? 'ocupada' : 'disponível';
+    if(ativo) return 'ocupada';
+    if(temFuturo) return 'reservada';
+    return 'disponível';
   }
 
   function render(list){
@@ -118,7 +123,9 @@
     table.innerHTML = '';
     filtered.forEach(b => {
       const status = bikeStatus(b);
-      const dot = status==='disponível' ? 'status-free' : 'status-busy';
+      let dot = 'status-free';
+      if(status === 'ocupada') dot = 'status-busy';
+      else if(status === 'reservada') dot = 'status-reserved';
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td data-label="ID">${b.id}</td>
@@ -179,8 +186,11 @@
     }
     if(delId){
       const b = StorageAPI.getBicicleta(Number(delId));
-      const hasActive = StorageAPI.listAlugueis().some(a => a.codigo_bicicleta === b.codigo && Utils.getRentalStatus(a) === 'ativo');
-      if(hasActive){ alert('Não é possível excluir: bicicleta com aluguel ativo.'); return; }
+      const alugueisRelacionados = StorageAPI.listAlugueis().filter(a => a.codigo_bicicleta === b.codigo);
+      const temAtivo = alugueisRelacionados.some(a => Utils.getRentalStatus(a) === 'ativo');
+      const temFuturo = alugueisRelacionados.some(a => Utils.getRentalStatus(a) === 'futuro');
+      if(temAtivo){ alert('Não é possível excluir: bicicleta com aluguel ativo.'); return; }
+      if(temFuturo){ alert('Não é possível excluir: bicicleta reservada para aluguel futuro. Cancele a reserva primeiro.'); return; }
       if(confirm('Excluir esta bicicleta?')){
         StorageAPI.removeBicicleta(Number(delId));
         load();
